@@ -3,7 +3,7 @@ export const GameConfig = {
     ISO_DEPTH: 15,
     FRICTION: 0.85,
     GRAVITY: 0.5,
-    JUMP_FORCE: -2,
+    JUMP_FORCE: -6,
     MOVE_SPEED: 0.1,
     MOVING_BLOCK_SPEED: 0.05,
     CAMERA_LERP: 0.1,
