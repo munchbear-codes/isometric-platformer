@@ -3,16 +3,19 @@ export const GameConfig = {
     ISO_DEPTH: 15,
     FRICTION: 0.85,
     GRAVITY: 0.5,
-    JUMP_FORCE: -12,
-    MOVE_SPEED: 0.1,
-    MOVING_BLOCK_SPEED: 0.05,
+    JUMP_FORCE: -2,
+    MOVE_SPEED: 1,
+    MOVING_BLOCK_SPEED: 0.25,
     CAMERA_LERP: 0.1,
     TILES: {
         AIR: 0,
         WALL: 1,
         GOAL: 9,
         MOVING_BLOCK_VERTICAL: 2,
-        MOVING_BLOCK_HORIZONTAL: 3
+        MOVING_BLOCK_HORIZONTAL: 3,
+        SPIKE_TRAP_VERTICAL: 4,
+        SPIKE_TRAP_HORIZONTAL: 5
+        
     },
     MAP_DATA: [
     [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
