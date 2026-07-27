@@ -1,15 +1,29 @@
-import { GameConfig } from './config.js';
-
-export class Camera {
-    constructor() {
-        this.x = 0;
-        this.y = 0;
-    }
-
-    update(targetX, targetY, viewportW, viewportH) {
-        const destX = targetX - viewportW / 2;
-        const destY = targetY - viewportH / 2;
-        this.x += (destX - this.x) * GameConfig.CAMERA_LERP;
-        this.y += (destY - this.y) * GameConfig.CAMERA_LERP;
-    }
-}
+export const GameConfig = {
+    TILE_SIZE: 50,
+    ISO_DEPTH: 15,
+    FRICTION: 0.85,
+    GRAVITY: 0.5,
+    JUMP_FORCE: -12,
+    MOVE_SPEED: 0.1,
+    MOVING_BLOCK_SPEED: 0.05,
+    CAMERA_LERP: 0.1,
+    TILES: {
+        AIR: 0,
+        WALL: 1,
+        GOAL: 9,
+        MOVING_BLOCK_VERTICAL: 2,
+        MOVING_BLOCK_HORIZONTAL: 3
+    },
+    MAP_DATA: [
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,3,0,0,0,0,1],
+    [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+    [1,0,0,0,0,1,0,0,0,0,0,0,0,9,1],
+    [1,2,0,0,1,1,1,0,0,0,0,0,0,0,1],
+    [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
+]
+};
