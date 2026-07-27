@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2.5D Isometric Platformer</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #2c3e50; font-family: sans-serif; }
+        canvas { display: block; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; text-shadow: 2px 2px 0 #000; pointer-events: none; }
+        .controls { background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; border: 2px solid white; display: inline-block; }
+    </style>
+</head>
+<body>
+<div id="ui">
+    <h1>Isometric Platformer</h1>
+    <div class="controls">
+        ⌨️ <b>Arrow Keys / WASD</b> to Move & Jump<br>
+        ⬇️ Hold <b>S</b> or <b>Down</b> to Crouch
+    </div>
+</div>
+<canvas id="gameCanvas"></canvas>
+
+<!-- Bootstrapping the game as a module -->
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
