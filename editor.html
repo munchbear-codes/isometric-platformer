@@ -3,19 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map Editor - Perimeter Lock</title>
+    <title>Map & Enemy Editor</title>
     <style>
         :root {
             --bg-color: #1e1e1e;
             --panel-color: #2d2d2d;
             --text-color: #e0e0e0;
             --accent-color: #4a90e2;
-            --border-color: #444;
             --danger-color: #e74c3c;
+            --border-color: #444;
         }
-
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
@@ -23,464 +22,498 @@
             height: 100vh;
             overflow: hidden;
         }
-
-        /* Sidebar */
         #sidebar {
-            width: 260px;
+            width: 300px;
             background-color: var(--panel-color);
             border-right: 1px solid var(--border-color);
             display: flex;
             flex-direction: column;
             padding: 15px;
-            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+            overflow-y: auto;
             z-index: 10;
         }
-
-        h2 { margin-top: 0; font-size: 1.2rem; color: var(--accent-color); }
-        .label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; margin-top: 15px;}
+        h2 { margin-top: 0; color: var(--accent-color); font-size: 1.3rem; }
+        .label { display: block; margin: 15px 0 8px; font-weight: bold; font-size: 0.9rem; }
         
-        .palette {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 6px;
-        }
-
+        .palette { display: grid; grid-template-columns: 1fr; gap: 6px; margin-bottom: 15px; }
         .tile-btn {
-            background: #3a3a3a;
-            border: 2px solid transparent;
-            color: white;
-            padding: 8px 12px;
-            cursor: pointer;
-            border-radius: 4px;
-            text-align: left;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            background: #3a3a3a; border: 2px solid transparent; color: white;
+            padding: 8px 12px; cursor: pointer; border-radius: 4px;
+            text-align: left; font-size: 0.85rem;
+            display: flex; align-items: center; gap: 10px;
         }
-
         .tile-btn:hover { background: #444; }
         .tile-btn.active { border-color: var(--accent-color); background: #333; }
-        
-        .color-swatch {
-            width: 20px;
-            height: 20px;
-            border-radius: 3px;
-            border: 1px solid #000;
-            flex-shrink: 0;
+        .swatch { width: 20px; height: 20px; border-radius: 3px; border: 1px solid #000; flex-shrink: 0; }
+
+        /* Enemy Mode Toggle */
+        .mode-toggle {
+            background: #333; border: 1px solid var(--danger-color);
+            color: var(--danger-color); padding: 10px;
+            border-radius: 4px; cursor: pointer;
+            text-align: center; font-weight: bold;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+        }
+        .mode-toggle.active {
+            background: var(--danger-color); color: white;
+            box-shadow: 0 0 10px rgba(231, 76, 60, 0.4);
         }
 
-        .controls { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
-        
+        .controls { margin-top: auto; display: flex; flex-direction: column; gap: 10px; }
         button.action-btn {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.2s;
+            background-color: var(--accent-color); color: white;
+            border: none; padding: 12px; border-radius: 4px;
+            cursor: pointer; font-weight: bold;
         }
         button.action-btn:hover { background-color: #357abd; }
-        
         button.secondary { background-color: #555; }
         button.secondary:hover { background-color: #666; }
 
         input[type="number"] {
-            background: #333;
-            border: 1px solid #555;
-            color: white;
-            padding: 5px;
-            border-radius: 3px;
-            width: 50px;
+            background: #333; border: 1px solid #555;
+            color: white; padding: 5px; border-radius: 3px; width: 50px;
         }
 
-        /* Main Area */
         #main-area {
-            flex: 1;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: #121212;
-            overflow: auto;
-            position: relative;
+            flex: 1; background-color: #121212;
+            display: flex; justify-content: center; align-items: center;
+            overflow: auto; position: relative;
         }
-
         canvas {
             background-color: #000;
             box-shadow: 0 0 20px rgba(0,0,0,0.5);
             cursor: crosshair;
         }
 
-        /* Modal */
         #output-modal {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
             background: rgba(0,0,0,0.9);
-            display: none;
-            justify-content: center;
-            align-items: center;
+            display: none; justify-content: center; align-items: center;
             z-index: 100;
         }
-
         .modal-content {
-            background: var(--panel-color);
-            padding: 20px;
-            border-radius: 8px;
-            width: 70%;
-            height: 70%;
-            display: flex;
-            flex-direction: column;
+            background: var(--panel-color); padding: 20px; border-radius: 8px;
+            width: 70%; height: 70%; display: flex; flex-direction: column;
             border: 1px solid var(--border-color);
         }
-
         textarea {
-            flex: 1;
-            background: #111;
-            color: #0f0;
+            flex: 1; background: #111; color: #0f0;
             font-family: 'Courier New', monospace;
-            border: 1px solid #444;
-            padding: 15px;
-            resize: none;
-            margin-bottom: 15px;
-            font-size: 14px;
+            border: 1px solid #444; padding: 15px; resize: none; margin-bottom: 15px;
         }
-
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 15px; }
         .close-btn { background: none; border: none; color: #aaa; font-size: 1.5rem; cursor: pointer; }
         .close-btn:hover { color: white; }
         
-        .info-box {
-            font-size: 0.8rem;
-            color: #aaa;
-            background: #222;
-            padding: 10px;
-            border-radius: 4px;
-            margin-top: 10px;
-            line-height: 1.4;
+        .note {
+            font-size: 0.75rem; color: #aaa; background: #222;
+            padding: 8px; border-radius: 4px; margin-top: 10px;
+            border-left: 3px solid var(--accent-color); line-height: 1.4;
         }
-        .info-box strong { color: var(--danger-color); }
+        .enemy-note { border-left-color: var(--danger-color); }
     </style>
 </head>
 <body>
 
-    <div id="sidebar">
-        <h2>Map Editor</h2>
+<div id="sidebar">
+    <h2>Map & Enemy Editor</h2>
+    
+    <div class="label">Dimensions</div>
+    <div style="display:flex; gap:10px; align-items:center;">
+        <label>W: <input type="number" id="map-w" value="28" min="5" max="100"></label>
+        <label>H: <input type="number" id="map-h" value="16" min="5" max="100"></label>
+        <button class="action-btn secondary" id="btn-resize" style="padding:5px 10px;">Set</button>
+    </div>
+
+    <!-- Enemy Mode Toggle -->
+    <div class="label">Mode</div>
+    <div id="btn-enemy-mode" class="mode-toggle">
+        🛑 TILE EDITING
+    </div>
+    <div class="note enemy-note" id="mode-hint">
+        <strong>Tile Mode:</strong> Left Click = Paint, Right Click = Erase (Air).<br>
+        Perimeter locked to Wall (1). Goal (9) allowed on border.
+    </div>
+
+    <!-- Tile Palette (Hidden in Enemy Mode via JS if desired, but kept visible for convenience) -->
+    <div class="label">Tiles</div>
+    <div class="palette" id="palette"></div>
+
+    <div class="controls">
+        <button class="action-btn" id="btn-export">Export Config Data</button>
+        <button class="action-btn secondary" id="btn-clear">Clear Interior & Enemies</button>
+    </div>
+</div>
+
+<div id="main-area">
+    <canvas id="canvas"></canvas>
+</div>
+
+<div id="output-modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Export Data</h3>
+            <button class="close-btn" id="btn-close">&times;</button>
+        </div>
+        <textarea id="output-area" readonly></textarea>
+        <button class="action-btn" id="btn-copy">Copy to Clipboard</button>
+    </div>
+</div>
+
+<script>
+    // --- CONFIG ---
+    const TILES = {
+        AIR: 0, WALL: 1, MOVING_BLOCK_VERTICAL: 2, MOVING_BLOCK_HORIZONTAL: 3,
+        SPIKE_TRAP: 4, STICKY_BLOCK: 5, SHOOT_TRAP_VERTICAL: 6, SHOOT_TRAP_HORIZONTAL: 7,
+        WATER: 8, GOAL: 9
+    };
+
+    const COLORS = {
+        0: '#000000', 1: '#888888', 2: '#e74c3c', 3: '#3498db',
+        4: '#9b59b6', 5: '#d35400', 6: '#e67e22', 7: '#f39c12',
+        8: '#2980b9', 9: '#2ecc71'
+    };
+
+    const LABELS = {
+        0: 'Air', 1: 'Wall', 2: 'Move Block (V)', 3: 'Move Block (H)',
+        4: 'Spike Trap', 5: 'Sticky Block', 6: 'Shoot Trap (V)', 7: 'Shoot Trap (H)',
+        8: 'Water', 9: 'Goal'
+    };
+
+    let width = 28;
+    let height = 16;
+    const SIZE = 30; // Slightly smaller to fit larger maps
+    let currentTile = TILES.WALL;
+    let isDrawing = false;
+    let grid = [];
+    let enemies = []; // Array of {x, y, facing}
+    let enemyMode = false;
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const palette = document.getElementById('palette');
+    const outModal = document.getElementById('output-modal');
+    const outArea = document.getElementById('output-area');
+    const btnEnemyMode = document.getElementById('btn-enemy-mode');
+    const modeHint = document.getElementById('mode-hint');
+
+    function init() {
+        // Build Palette
+        Object.keys(TILES).forEach(k => {
+            const v = TILES[k];
+            const btn = document.createElement('div');
+            btn.className = `tile-btn ${v === TILES.WALL ? 'active' : ''}`;
+            btn.innerHTML = `<div class="swatch" style="background:${COLORS[v]}"></div><span>${LABELS[v]}</span>`;
+            btn.onclick = () => {
+                currentTile = v;
+                document.querySelectorAll('.tile-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            };
+            palette.appendChild(btn);
+        });
+
+        resize();
+        setupEvents();
+        draw();
+    }
+
+    function resize() {
+        width = parseInt(document.getElementById('map-w').value) || 28;
+        height = parseInt(document.getElementById('map-h').value) || 16;
         
-        <div class="label">Dimensions</div>
-        <div style="display:flex; gap:10px; align-items:center;">
-            <label>W: <input type="number" id="map-width" value="15" min="5" max="60"></label>
-            <label>H: <input type="number" id="map-height" value="10" min="5" max="60"></label>
-            <button class="action-btn secondary" id="resize-btn" style="padding: 5px 10px;">Apply</button>
-        </div>
-
-        <div class="label">Tile Palette</div>
-        <div class="palette" id="palette"></div>
-
-        <div class="info-box">
-            <strong>Perimeter Rule:</strong> Border is locked to Wall (1). Only Goal (9) can overwrite the border.
-        </div>
-
-        <div class="controls">
-            <button class="action-btn" id="export-btn">Export MAP_DATA</button>
-            <button class="action-btn secondary" id="clear-btn">Clear Interior</button>
-        </div>
-    </div>
-
-    <div id="main-area">
-        <canvas id="game-canvas"></canvas>
-    </div>
-
-    <div id="output-modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Export MAP_DATA Array</h3>
-                <button class="close-btn" id="close-modal">&times;</button>
-            </div>
-            <textarea id="output-code" readonly></textarea>
-            <button class="action-btn" id="copy-btn">Copy to Clipboard</button>
-        </div>
-    </div>
-
-    <script>
-        // --- Configuration ---
-        const TILES = {
-            AIR: 0,
-            WALL: 1,
-            MOVING_BLOCK_VERTICAL: 2,
-            MOVING_BLOCK_HORIZONTAL: 3,
-            SPIKE_TRAP_VERTICAL: 4,
-            SPIKE_TRAP_HORIZONTAL: 5,
-            GOAL: 9
-        };
-
-        const COLORS = {
-            0: '#000000', // Air
-            1: '#888888', // Wall
-            2: '#e74c3c', // Vert Move
-            3: '#3498db', // Horiz Move
-            4: '#9b59b6', // Vert Spike (Purple)
-            5: '#f1c40f', // Horiz Spike (Yellow)
-            9: '#2ecc71'  // Goal
-        };
-
-        const LABELS = {
-            0: 'Air (Eraser)',
-            1: 'Wall (Solid)',
-            2: 'Moving Block (Vert)',
-            3: 'Moving Block (Horiz)',
-            4: 'Spike Trap (Vert)',
-            5: 'Spike Trap (Horiz)',
-            9: 'Goal (Exit)'
-        };
-
-        let mapWidth = 15;
-        let mapHeight = 10;
-        const TILE_SIZE = 40;
-        let currentTile = TILES.WALL;
-        let isDrawing = false;
-        let mapData = [];
-
-        // --- DOM ---
-        const canvas = document.getElementById('game-canvas');
-        const ctx = canvas.getContext('2d');
-        const paletteContainer = document.getElementById('palette');
-        const outputModal = document.getElementById('output-modal');
-        const outputCode = document.getElementById('output-code');
-
-        // --- Init ---
-        function init() {
-            createPalette();
-            resizeMap(mapWidth, mapHeight);
-            setupEvents();
-            draw();
-        }
-
-        function createPalette() {
-            paletteContainer.innerHTML = '';
-            Object.keys(TILES).forEach(key => {
-                const val = TILES[key];
-                const btn = document.createElement('div');
-                btn.className = `tile-btn ${val === TILES.WALL ? 'active' : ''}`;
-                btn.dataset.value = val;
-                btn.innerHTML = `
-                    <div class="color-swatch" style="background-color: ${COLORS[val]}"></div>
-                    <span>${LABELS[val]}</span>
-                `;
-                btn.onclick = () => selectTile(val, btn);
-                paletteContainer.appendChild(btn);
-            });
-        }
-
-        function selectTile(value, btnElement) {
-            currentTile = value;
-            document.querySelectorAll('.tile-btn').forEach(b => b.classList.remove('active'));
-            btnElement.classList.add('active');
-        }
-
-        // --- Core Logic: Perimeter Enforcement ---
-        function isPerimeter(x, y) {
-            return x === 0 || x === mapWidth - 1 || y === 0 || y === mapHeight - 1;
-        }
-
-        function canPlaceTile(x, y, tileType) {
-            // If it's not the perimeter, always allow
-            if (!isPerimeter(x, y)) return true;
-
-            // If it IS the perimeter:
-            // 1. Allow GOAL (9) to overwrite anything
-            if (tileType === TILES.GOAL) return true;
-            
-            // 2. Allow WALL (1) (redundant but safe)
-            if (tileType === TILES.WALL) return true;
-
-            // 3. Disallow Air (0) - cannot erase perimeter
-            if (tileType === TILES.AIR) return false;
-
-            // 4. Disallow Moving Blocks and Spikes
-            return false;
-        }
-
-        function resizeMap(w, h) {
-            mapWidth = parseInt(w) || 15;
-            mapHeight = parseInt(h) || 10;
-            
-            const newData = [];
-            for (let y = 0; y < mapHeight; y++) {
-                const row = [];
-                for (let x = 0; x < mapWidth; x++) {
-                    // Preserve data if resizing larger, else Air
-                    if (y < mapData.length && x < mapData[y].length) {
-                        row.push(mapData[y][x]);
-                    } else {
-                        row.push(TILES.AIR);
-                    }
-                }
-                newData.push(row);
+        const newGrid = [];
+        for(let y=0; y<height; y++) {
+            const row = [];
+            for(let x=0; x<width; x++) {
+                if(y < grid.length && x < grid[0].length) row.push(grid[y][x]);
+                else row.push(TILES.AIR);
             }
-            mapData = newData;
-            enforcePerimeter(); // Ensure border is solid after resize
-            canvas.width = mapWidth * TILE_SIZE;
-            canvas.height = mapHeight * TILE_SIZE;
-            draw();
+            newGrid.push(row);
         }
+        grid = newGrid;
+        enforceBorder();
+        
+        canvas.width = width * SIZE;
+        canvas.height = height * SIZE;
+        draw();
+    }
 
-        function enforcePerimeter() {
-            for (let y = 0; y < mapHeight; y++) {
-                for (let x = 0; x < mapWidth; x++) {
-                    if (isPerimeter(x, y)) {
-                        // Only keep Goal if it exists, otherwise force Wall
-                        if (mapData[y][x] !== TILES.GOAL) {
-                            mapData[y][x] = TILES.WALL;
-                        }
-                    }
+    function enforceBorder() {
+        for(let y=0; y<height; y++) {
+            for(let x=0; x<width; x++) {
+                const isBorder = (x===0 || x===width-1 || y===0 || y===height-1);
+                if(isBorder) {
+                    if(grid[y][x] !== TILES.GOAL) grid[y][x] = TILES.WALL;
                 }
             }
         }
+    }
 
-        // --- Drawing ---
-        function draw() {
-            ctx.fillStyle = '#111';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    function isBorder(x, y) {
+        return x===0 || x===width-1 || y===0 || y===height-1;
+    }
 
-            // Grid
-            ctx.strokeStyle = '#222';
-            ctx.lineWidth = 1;
-            for (let x = 0; x <= mapWidth; x++) {
-                ctx.beginPath(); ctx.moveTo(x * TILE_SIZE, 0); ctx.lineTo(x * TILE_SIZE, canvas.height); ctx.stroke();
+    function canPlaceTile(x, y, type) {
+        if(!isBorder(x, y)) return true;
+        if(type === TILES.GOAL) return true;
+        if(type === TILES.WALL) return true;
+        return false;
+    }
+
+    function draw() {
+        ctx.fillStyle = '#111';
+        ctx.fillRect(0,0,canvas.width,canvas.height);
+        
+        // Grid
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 1;
+        for(let x=0; x<=width; x++) { ctx.beginPath(); ctx.moveTo(x*SIZE,0); ctx.lineTo(x*SIZE,canvas.height); ctx.stroke(); }
+        for(let y=0; y<=height; y++) { ctx.beginPath(); ctx.moveTo(0,y*SIZE); ctx.lineTo(canvas.width,y*SIZE); ctx.stroke(); }
+
+        // Tiles
+        for(let y=0; y<height; y++) {
+            for(let x=0; x<width; x++) {
+                const t = grid[y][x];
+                if(t !== TILES.AIR) drawTile(x,y,t);
             }
-            for (let y = 0; y <= mapHeight; y++) {
-                ctx.beginPath(); ctx.moveTo(0, y * TILE_SIZE); ctx.lineTo(canvas.width, y * TILE_SIZE); ctx.stroke();
-            }
+        }
 
-            // Tiles
-            for (let y = 0; y < mapHeight; y++) {
-                for (let x = 0; x < mapWidth; x++) {
-                    const tile = mapData[y][x];
-                    if (tile !== TILES.AIR) {
-                        drawTile(x, y, tile);
-                    }
+        // Enemies
+        enemies.forEach((en, index) => {
+            drawEnemy(en.x, en.y, en.facing, index);
+        });
+    }
+
+    function drawTile(x, y, t) {
+        const px = x*SIZE, py = y*SIZE, p = 1;
+        ctx.fillStyle = COLORS[t];
+        ctx.fillRect(px+p, py+p, SIZE-p*2, SIZE-p*2);
+
+        // Simple Icons
+        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        const cx = px + SIZE/2, cy = py + SIZE/2;
+
+        if(t === TILES.GOAL) {
+            ctx.fillStyle = '#fff';
+            ctx.beginPath(); ctx.moveTo(cx, py+SIZE*0.3); ctx.lineTo(px+SIZE*0.8, py+SIZE*0.8); ctx.lineTo(px+SIZE*0.2, py+SIZE*0.8); ctx.fill();
+        }
+        else if(t === TILES.MOVING_BLOCK_HORIZONTAL || t === TILES.SHOOT_TRAP_HORIZONTAL) {
+            ctx.fillRect(px+5, cy-2, SIZE-10, 4);
+        }
+        else if(t === TILES.MOVING_BLOCK_VERTICAL || t === TILES.SHOOT_TRAP_VERTICAL) {
+            ctx.fillRect(cx-2, py+5, 4, SIZE-10);
+        }
+        else if(t === TILES.SPIKE_TRAP) {
+            ctx.fillStyle = '#000';
+            ctx.beginPath(); ctx.moveTo(px+5, py+SIZE-5); ctx.lineTo(cx, py+5); ctx.lineTo(px+SIZE-5, py+SIZE-5); ctx.fill();
+        }
+        else if(t === TILES.STICKY_BLOCK) {
+            ctx.fillStyle = 'rgba(0,0,0,0.3)';
+            ctx.beginPath(); ctx.arc(cx, cy, SIZE/4, 0, Math.PI*2); ctx.fill();
+        }
+        else if(t === TILES.WATER) {
+            ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+            ctx.beginPath(); ctx.moveTo(px+5, cy-5); ctx.quadraticCurveTo(cx, cy-10, px+SIZE-5, cy-5); ctx.stroke();
+        }
+
+        if(t === TILES.WALL) {
+            ctx.strokeStyle = '#555'; ctx.lineWidth = 2;
+            ctx.strokeRect(px+p, py+p, SIZE-p*2, SIZE-p*2);
+        }
+    }
+
+    function drawEnemy(x, y, facing, idx) {
+        const px = x*SIZE, py = y*SIZE;
+        const cx = px + SIZE/2, cy = py + SIZE/2;
+
+        // Body
+        ctx.fillStyle = '#e74c3c'; // Red
+        ctx.fillRect(px + 4, py + 4, SIZE - 8, SIZE - 8);
+        
+        // Direction Indicator (White Dot)
+        ctx.fillStyle = '#fff';
+        const offset = 6;
+        const dx = facing === 1 ? offset : -offset;
+        
+        ctx.beginPath();
+        ctx.arc(cx + dx, cy, 3, 0, Math.PI*2);
+        ctx.fill();
+
+        // Hover highlight if needed (optional)
+        if(idx === hoverEnemyIndex) {
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(px+2, py+2, SIZE-4, SIZE-4);
+        }
+    }
+
+    // --- Interaction ---
+    let hoverEnemyIndex = -1;
+
+    function getPos(e) {
+        const r = canvas.getBoundingClientRect();
+        const sx = canvas.width / r.width;
+        const sy = canvas.height / r.height;
+        return {
+            x: Math.floor(((e.clientX - r.left) * sx) / SIZE),
+            y: Math.floor(((e.clientY - r.top) * sy) / SIZE)
+        };
+    }
+
+    function getEnemyAt(x, y) {
+        return enemies.findIndex(e => e.x === x && e.y === y);
+    }
+
+    function handle(e) {
+        const p = getPos(e);
+        if(p.x<0 || p.x>=width || p.y<0 || p.y>=height) return;
+
+        const isRight = e.button === 2 || e.buttons === 2;
+        const isShift = e.shiftKey;
+
+        if (enemyMode) {
+            // ENEMY MODE LOGIC
+            if (isRight || isShift) {
+                // Remove enemy
+                const idx = getEnemyAt(p.x, p.y);
+                if (idx !== -1) {
+                    enemies.splice(idx, 1);
+                    draw();
                 }
-            }
-        }
-
-        function drawTile(x, y, type) {
-            const px = x * TILE_SIZE;
-            const py = y * TILE_SIZE;
-            const pad = 1;
-
-            ctx.fillStyle = COLORS[type];
-            ctx.fillRect(px + pad, py + pad, TILE_SIZE - pad*2, TILE_SIZE - pad*2);
-
-            // Icons
-            ctx.fillStyle = 'rgba(0,0,0,0.4)';
-            if (type === TILES.GOAL) {
-                ctx.fillStyle = '#fff';
-                ctx.beginPath();
-                ctx.moveTo(px + TILE_SIZE/2, py + TILE_SIZE*0.3);
-                ctx.lineTo(px + TILE_SIZE*0.8, py + TILE_SIZE*0.8);
-                ctx.lineTo(px + TILE_SIZE*0.2, py + TILE_SIZE*0.8);
-                ctx.fill();
-            } else if (type === TILES.MOVING_BLOCK_HORIZONTAL || type === TILES.SPIKE_TRAP_HORIZONTAL) {
-                ctx.fillRect(px + 5, py + TILE_SIZE/2 - 2, TILE_SIZE - 10, 4);
-                // Arrows
-                ctx.beginPath(); ctx.moveTo(px+5, py+TILE_SIZE/2-5); ctx.lineTo(px+5, py+TILE_SIZE/2+5); ctx.lineTo(px+12, py+TILE_SIZE/2); ctx.fill();
-                ctx.beginPath(); ctx.moveTo(px+TILE_SIZE-5, py+TILE_SIZE/2-5); ctx.lineTo(px+TILE_SIZE-5, py+TILE_SIZE/2+5); ctx.lineTo(px+TILE_SIZE-12, py+TILE_SIZE/2); ctx.fill();
-            } else if (type === TILES.MOVING_BLOCK_VERTICAL || type === TILES.SPIKE_TRAP_VERTICAL) {
-                ctx.fillRect(px + TILE_SIZE/2 - 2, py + 5, 4, TILE_SIZE - 10);
-                // Arrows
-                ctx.beginPath(); ctx.moveTo(px+TILE_SIZE/2-5, py+5); ctx.lineTo(px+TILE_SIZE/2+5, py+5); ctx.lineTo(px+TILE_SIZE/2, py+12); ctx.fill();
-                ctx.beginPath(); ctx.moveTo(px+TILE_SIZE/2-5, py+TILE_SIZE-5); ctx.lineTo(px+TILE_SIZE/2+5, py+TILE_SIZE-5); ctx.lineTo(px+TILE_SIZE/2, py+TILE_SIZE-12); ctx.fill();
-            }
-
-            // Border highlight for walls
-            if (type === TILES.WALL) {
-                ctx.strokeStyle = '#555';
-                ctx.lineWidth = 2;
-                ctx.strokeRect(px + pad, py + pad, TILE_SIZE - pad*2, TILE_SIZE - pad*2);
-            }
-        }
-
-        // --- Interaction ---
-        function getPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            const scaleX = canvas.width / rect.width;
-            const scaleY = canvas.height / rect.height;
-            return {
-                x: Math.floor(((e.clientX - rect.left) * scaleX) / TILE_SIZE),
-                y: Math.floor(((e.clientY - rect.top) * scaleY) / TILE_SIZE)
-            };
-        }
-
-        function handleInput(e) {
-            const pos = getPos(e);
-            if (pos.x < 0 || pos.x >= mapWidth || pos.y < 0 || pos.y >= mapHeight) return;
-
-            const isRightClick = e.button === 2 || e.buttons === 2;
-            const tileToPlace = isRightClick ? TILES.AIR : currentTile;
-
-            if (canPlaceTile(pos.x, pos.y, tileToPlace)) {
-                mapData[pos.y][pos.x] = tileToPlace;
+            } else if (e.buttons === 1) {
+                // Add Enemy (Left Click)
+                // Check if tile is solid (optional, but good practice)
+                // Remove existing enemy at this spot first
+                const idx = getEnemyAt(p.x, p.y);
+                if (idx !== -1) enemies.splice(idx, 1);
+                
+                // Add new enemy facing LEFT (-1)
+                enemies.push({ x: p.x, y: p.y, facing: -1 });
                 draw();
-            } else if (isRightClick && isPerimeter(pos.x, pos.y)) {
-                // Visual feedback for denied erase
-                ctx.strokeStyle = '#f00';
-                ctx.lineWidth = 3;
-                ctx.strokeRect(pos.x * TILE_SIZE, pos.y * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+            } else if (e.buttons === 2) {
+                 // Handled above, but for clarity: Right click adds facing RIGHT (1) if we change logic
+                 // Current logic: Right click removes. Let's make Right Click ADD facing RIGHT for ease?
+                 // User requested: "right click tile to place enemy"
+                 // Let's adjust: Right Click = Place Facing Right. Shift+Right Click = Remove.
             }
-        }
-
-        function setupEvents() {
-            canvas.addEventListener('mousedown', (e) => {
-                isDrawing = true;
-                handleInput(e);
-            });
-            canvas.addEventListener('mousemove', (e) => {
-                if (isDrawing) handleInput(e);
-            });
-            window.addEventListener('mouseup', () => isDrawing = false);
-            canvas.addEventListener('contextmenu', e => e.preventDefault());
-
-            document.getElementById('resize-btn').onclick = () => {
-                const w = document.getElementById('map-width').value;
-                const h = document.getElementById('map-height').value;
-                resizeMap(w, h);
-            };
-
-            document.getElementById('clear-btn').onclick = () => {
-                if(!confirm("Clear all interior tiles? Perimeter will remain.")) return;
-                for (let y = 1; y < mapHeight - 1; y++) {
-                    for (let x = 1; x < mapWidth - 1; x++) {
-                        mapData[y][x] = TILES.AIR;
-                    }
-                }
+        } else {
+            // TILE MODE LOGIC
+            const type = isRight ? TILES.AIR : currentTile;
+            if (canPlaceTile(p.x, p.y, type)) {
+                grid[p.y][p.x] = type;
                 draw();
-            };
-
-            document.getElementById('export-btn').onclick = generateExport;
-            document.getElementById('close-modal').onclick = () => outputModal.style.display = 'none';
-            document.getElementById('copy-btn').onclick = () => {
-                outputCode.select();
-                document.execCommand('copy');
-                alert('Copied MAP_DATA array!');
-            };
-        }
-
-        function generateExport() {
-            let output = "MAP_DATA: [\n";
-            for (let y = 0; y < mapHeight; y++) {
-                const rowStr = mapData[y].join(', ');
-                output += `    [${rowStr}],\n`;
+            } else if (isRight && isBorder(p.x, p.y)) {
+                // Flash error
+                ctx.strokeStyle = '#f00'; ctx.lineWidth = 3;
+                ctx.strokeRect(p.x*SIZE, p.y*SIZE, SIZE, SIZE);
             }
-            output += "]";
-            
-            outputCode.value = output;
-            outputModal.style.display = 'flex';
         }
+    }
+    
+    // Refined Enemy Placement Logic for Mouse Down
+    function handleDown(e) {
+        const p = getPos(e);
+        if(p.x<0 || p.x>=width || p.y<0 || p.y>=height) return;
+        
+        if (enemyMode) {
+            const isRight = e.button === 2;
+            const isShift = e.shiftKey;
+            
+            if (isShift && isRight) {
+                // Remove
+                const idx = getEnemyAt(p.x, p.y);
+                if (idx !== -1) { enemies.splice(idx, 1); draw(); }
+            } else if (isRight) {
+                // Place Facing RIGHT (1)
+                const idx = getEnemyAt(p.x, p.y);
+                if (idx !== -1) enemies.splice(idx, 1);
+                enemies.push({ x: p.x, y: p.y, facing: 1 });
+                draw();
+            } else if (e.button === 0) {
+                // Place Facing LEFT (-1)
+                const idx = getEnemyAt(p.x, p.y);
+                if (idx !== -1) enemies.splice(idx, 1);
+                enemies.push({ x: p.x, y: p.y, facing: -1 });
+                draw();
+            }
+        } else {
+            isDrawing = true;
+            handle(e);
+        }
+    }
 
-        init();
-    </script>
+    function setupEvents() {
+        canvas.onmousedown = e => {
+            if(!enemyMode) isDrawing = true;
+            handleDown(e);
+        };
+        canvas.onmousemove = e => {
+            if(isDrawing && !enemyMode) handle(e);
+            
+            // Hover effect for enemies
+            const p = getPos(e);
+            hoverEnemyIndex = getEnemyAt(p.x, p.y);
+            draw();
+        };
+        window.onmouseup = () => isDrawing=false;
+        canvas.oncontextmenu = e => e.preventDefault();
+
+        // Toggle Enemy Mode
+        btnEnemyMode.onclick = () => {
+            enemyMode = !enemyMode;
+            if(enemyMode) {
+                btnEnemyMode.classList.add('active');
+                btnEnemyMode.innerHTML = "⚔️ ENEMY PLACEMENT";
+                modeHint.innerHTML = "<strong>Enemy Mode:</strong><br>Left Click = Face Left (-1)<br>Right Click = Face Right (1)<br>Shift+Right Click = Remove";
+            } else {
+                btnEnemyMode.classList.remove('active');
+                btnEnemyMode.innerHTML = "🛑 TILE EDITING";
+                modeHint.innerHTML = "<strong>Tile Mode:</strong><br>Left Click = Paint, Right Click = Erase (Air).<br>Perimeter locked to Wall (1). Goal (9) allowed on border.";
+            }
+        };
+
+        document.getElementById('btn-resize').onclick = resize;
+        
+        document.getElementById('btn-clear').onclick = () => {
+            if(!confirm("Clear interior tiles AND all enemies?")) return;
+            for(let y=1; y<height-1; y++)
+                for(let x=1; x<width-1; x++)
+                    grid[y][x] = TILES.AIR;
+            enemies = [];
+            draw();
+        };
+
+        document.getElementById('btn-export').onclick = () => {
+            // Map Data
+            let mapStr = "MAP_DATA: [\n";
+            for(let y=0; y<height; y++) {
+                mapStr += "    [" + grid[y].join(', ') + "],\n";
+            }
+            mapStr += "]";
+
+            // Actor Data
+            let actorStr = "ACTOR_DATA: [\n";
+            enemies.forEach((en, i) => {
+                actorStr += `    { type: 'enemy', x: ${en.x}, y: ${en.y}, facing: ${en.facing} }`;
+                if(i < enemies.length - 1) actorStr += ",";
+                actorStr += "\n";
+            });
+            actorStr += "]";
+
+            outArea.value = mapStr + ",\n\n" + actorStr;
+            outModal.style.display = 'flex';
+        };
+
+        document.getElementById('btn-close').onclick = () => outModal.style.display = 'none';
+        document.getElementById('btn-copy').onclick = () => {
+            outArea.select();
+            document.execCommand('copy');
+            alert('Copied MAP_DATA and ACTOR_DATA!');
+        };
+    }
+
+    init();
+</script>
 </body>
 </html>   
