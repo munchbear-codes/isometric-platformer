@@ -46,7 +46,6 @@
         .tile-btn.active { border-color: var(--accent-color); background: #333; }
         .swatch { width: 20px; height: 20px; border-radius: 3px; border: 1px solid #000; flex-shrink: 0; }
 
-        /* Enemy Mode Toggle */
         .mode-toggle {
             background: #333; border: 1px solid var(--danger-color);
             color: var(--danger-color); padding: 10px;
@@ -126,7 +125,6 @@
         <button class="action-btn secondary" id="btn-resize" style="padding:5px 10px;">Set</button>
     </div>
 
-    <!-- Enemy Mode Toggle -->
     <div class="label">Mode</div>
     <div id="btn-enemy-mode" class="mode-toggle">
         🛑 TILE EDITING
@@ -136,7 +134,6 @@
         Perimeter locked to Wall (1). Goal (9) allowed on border.
     </div>
 
-    <!-- Tile Palette (Hidden in Enemy Mode via JS if desired, but kept visible for convenience) -->
     <div class="label">Tiles</div>
     <div class="palette" id="palette"></div>
 
@@ -170,9 +167,16 @@
     };
 
     const COLORS = {
-        0: '#000000', 1: '#888888', 2: '#e74c3c', 3: '#3498db',
-        4: '#9b59b6', 5: '#d35400', 6: '#e67e22', 7: '#f39c12',
-        8: '#2980b9', 9: '#2ecc71'
+        0: '#000000', 
+        1: '#888888', 
+        2: '#e74c3c', // Move Vert (Red)
+        3: '#e74c3c', // Move Horiz (Red) <- CHANGED FROM BLUE TO RED
+        4: '#9b59b6', 
+        5: '#d35400', 
+        6: '#e67e22', 
+        7: '#f39c12', 
+        8: '#2980b9', // Water (Blue)
+        9: '#2ecc71'
     };
 
     const LABELS = {
@@ -183,11 +187,11 @@
 
     let width = 28;
     let height = 16;
-    const SIZE = 30; // Slightly smaller to fit larger maps
+    const SIZE = 30;
     let currentTile = TILES.WALL;
     let isDrawing = false;
     let grid = [];
-    let enemies = []; // Array of {x, y, facing}
+    let enemies = [];
     let enemyMode = false;
 
     const canvas = document.getElementById('canvas');
@@ -199,7 +203,6 @@
     const modeHint = document.getElementById('mode-hint');
 
     function init() {
-        // Build Palette
         Object.keys(TILES).forEach(k => {
             const v = TILES[k];
             const btn = document.createElement('div');
@@ -265,13 +268,11 @@
         ctx.fillStyle = '#111';
         ctx.fillRect(0,0,canvas.width,canvas.height);
         
-        // Grid
         ctx.strokeStyle = '#222';
         ctx.lineWidth = 1;
         for(let x=0; x<=width; x++) { ctx.beginPath(); ctx.moveTo(x*SIZE,0); ctx.lineTo(x*SIZE,canvas.height); ctx.stroke(); }
         for(let y=0; y<=height; y++) { ctx.beginPath(); ctx.moveTo(0,y*SIZE); ctx.lineTo(canvas.width,y*SIZE); ctx.stroke(); }
 
-        // Tiles
         for(let y=0; y<height; y++) {
             for(let x=0; x<width; x++) {
                 const t = grid[y][x];
@@ -279,7 +280,6 @@
             }
         }
 
-        // Enemies
         enemies.forEach((en, index) => {
             drawEnemy(en.x, en.y, en.facing, index);
         });
@@ -290,7 +290,6 @@
         ctx.fillStyle = COLORS[t];
         ctx.fillRect(px+p, py+p, SIZE-p*2, SIZE-p*2);
 
-        // Simple Icons
         ctx.fillStyle = 'rgba(0,0,0,0.4)';
         const cx = px + SIZE/2, cy = py + SIZE/2;
 
@@ -298,11 +297,28 @@
             ctx.fillStyle = '#fff';
             ctx.beginPath(); ctx.moveTo(cx, py+SIZE*0.3); ctx.lineTo(px+SIZE*0.8, py+SIZE*0.8); ctx.lineTo(px+SIZE*0.2, py+SIZE*0.8); ctx.fill();
         }
-        else if(t === TILES.MOVING_BLOCK_HORIZONTAL || t === TILES.SHOOT_TRAP_HORIZONTAL) {
+        // MOVING BLOCKS (Both Red now)
+        else if(t === TILES.MOVING_BLOCK_HORIZONTAL) {
             ctx.fillRect(px+5, cy-2, SIZE-10, 4);
+            // Arrows
+            ctx.beginPath(); ctx.moveTo(px+5, cy-5); ctx.lineTo(px+5, cy+5); ctx.lineTo(px+12, cy); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(px+SIZE-5, cy-5); ctx.lineTo(px+SIZE-5, cy+5); ctx.lineTo(px+SIZE-12, cy); ctx.fill();
         }
-        else if(t === TILES.MOVING_BLOCK_VERTICAL || t === TILES.SHOOT_TRAP_VERTICAL) {
+        else if(t === TILES.MOVING_BLOCK_VERTICAL) {
             ctx.fillRect(cx-2, py+5, 4, SIZE-10);
+            ctx.beginPath(); ctx.moveTo(cx-5, py+5); ctx.lineTo(cx+5, py+5); ctx.lineTo(cx, py+12); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(cx-5, py+SIZE-5); ctx.lineTo(cx+5, py+SIZE-5); ctx.lineTo(cx, py+SIZE-12); ctx.fill();
+        }
+        // Shoot Traps (Orange/Yellow)
+        else if(t === TILES.SHOOT_TRAP_HORIZONTAL) {
+            ctx.fillRect(px+5, cy-2, SIZE-10, 4);
+            ctx.beginPath(); ctx.moveTo(px+5, cy-5); ctx.lineTo(px+5, cy+5); ctx.lineTo(px+12, cy); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(px+SIZE-5, cy-5); ctx.lineTo(px+SIZE-5, cy+5); ctx.lineTo(px+SIZE-12, cy); ctx.fill();
+        }
+        else if(t === TILES.SHOOT_TRAP_VERTICAL) {
+            ctx.fillRect(cx-2, py+5, 4, SIZE-10);
+            ctx.beginPath(); ctx.moveTo(cx-5, py+5); ctx.lineTo(cx+5, py+5); ctx.lineTo(cx, py+12); ctx.fill();
+            ctx.beginPath(); ctx.moveTo(cx-5, py+SIZE-5); ctx.lineTo(cx+5, py+SIZE-5); ctx.lineTo(cx, py+SIZE-12); ctx.fill();
         }
         else if(t === TILES.SPIKE_TRAP) {
             ctx.fillStyle = '#000';
@@ -327,11 +343,9 @@
         const px = x*SIZE, py = y*SIZE;
         const cx = px + SIZE/2, cy = py + SIZE/2;
 
-        // Body
-        ctx.fillStyle = '#e74c3c'; // Red
+        ctx.fillStyle = '#e74c3c';
         ctx.fillRect(px + 4, py + 4, SIZE - 8, SIZE - 8);
         
-        // Direction Indicator (White Dot)
         ctx.fillStyle = '#fff';
         const offset = 6;
         const dx = facing === 1 ? offset : -offset;
@@ -340,7 +354,6 @@
         ctx.arc(cx + dx, cy, 3, 0, Math.PI*2);
         ctx.fill();
 
-        // Hover highlight if needed (optional)
         if(idx === hoverEnemyIndex) {
             ctx.strokeStyle = '#fff';
             ctx.lineWidth = 2;
@@ -348,7 +361,6 @@
         }
     }
 
-    // --- Interaction ---
     let hoverEnemyIndex = -1;
 
     function getPos(e) {
@@ -373,45 +385,30 @@
         const isShift = e.shiftKey;
 
         if (enemyMode) {
-            // ENEMY MODE LOGIC
             if (isRight || isShift) {
-                // Remove enemy
                 const idx = getEnemyAt(p.x, p.y);
                 if (idx !== -1) {
                     enemies.splice(idx, 1);
                     draw();
                 }
             } else if (e.buttons === 1) {
-                // Add Enemy (Left Click)
-                // Check if tile is solid (optional, but good practice)
-                // Remove existing enemy at this spot first
                 const idx = getEnemyAt(p.x, p.y);
                 if (idx !== -1) enemies.splice(idx, 1);
-                
-                // Add new enemy facing LEFT (-1)
                 enemies.push({ x: p.x, y: p.y, facing: -1 });
                 draw();
-            } else if (e.buttons === 2) {
-                 // Handled above, but for clarity: Right click adds facing RIGHT (1) if we change logic
-                 // Current logic: Right click removes. Let's make Right Click ADD facing RIGHT for ease?
-                 // User requested: "right click tile to place enemy"
-                 // Let's adjust: Right Click = Place Facing Right. Shift+Right Click = Remove.
             }
         } else {
-            // TILE MODE LOGIC
             const type = isRight ? TILES.AIR : currentTile;
             if (canPlaceTile(p.x, p.y, type)) {
                 grid[p.y][p.x] = type;
                 draw();
             } else if (isRight && isBorder(p.x, p.y)) {
-                // Flash error
                 ctx.strokeStyle = '#f00'; ctx.lineWidth = 3;
                 ctx.strokeRect(p.x*SIZE, p.y*SIZE, SIZE, SIZE);
             }
         }
     }
     
-    // Refined Enemy Placement Logic for Mouse Down
     function handleDown(e) {
         const p = getPos(e);
         if(p.x<0 || p.x>=width || p.y<0 || p.y>=height) return;
@@ -421,17 +418,14 @@
             const isShift = e.shiftKey;
             
             if (isShift && isRight) {
-                // Remove
                 const idx = getEnemyAt(p.x, p.y);
                 if (idx !== -1) { enemies.splice(idx, 1); draw(); }
             } else if (isRight) {
-                // Place Facing RIGHT (1)
                 const idx = getEnemyAt(p.x, p.y);
                 if (idx !== -1) enemies.splice(idx, 1);
                 enemies.push({ x: p.x, y: p.y, facing: 1 });
                 draw();
             } else if (e.button === 0) {
-                // Place Facing LEFT (-1)
                 const idx = getEnemyAt(p.x, p.y);
                 if (idx !== -1) enemies.splice(idx, 1);
                 enemies.push({ x: p.x, y: p.y, facing: -1 });
@@ -450,8 +444,6 @@
         };
         canvas.onmousemove = e => {
             if(isDrawing && !enemyMode) handle(e);
-            
-            // Hover effect for enemies
             const p = getPos(e);
             hoverEnemyIndex = getEnemyAt(p.x, p.y);
             draw();
@@ -459,7 +451,6 @@
         window.onmouseup = () => isDrawing=false;
         canvas.oncontextmenu = e => e.preventDefault();
 
-        // Toggle Enemy Mode
         btnEnemyMode.onclick = () => {
             enemyMode = !enemyMode;
             if(enemyMode) {
@@ -485,14 +476,12 @@
         };
 
         document.getElementById('btn-export').onclick = () => {
-            // Map Data
             let mapStr = "MAP_DATA: [\n";
             for(let y=0; y<height; y++) {
                 mapStr += "    [" + grid[y].join(', ') + "],\n";
             }
             mapStr += "]";
 
-            // Actor Data
             let actorStr = "ACTOR_DATA: [\n";
             enemies.forEach((en, i) => {
                 actorStr += `    { type: 'enemy', x: ${en.x}, y: ${en.y}, facing: ${en.facing} }`;
