@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Map & Enemy Editor</title>
+    <title>Map & Enemy Editor - Final</title>
     <style>
         :root {
             --bg-color: #1e1e1e;
@@ -131,7 +131,7 @@
     </div>
     <div class="note enemy-note" id="mode-hint">
         <strong>Tile Mode:</strong> Left Click = Paint, Right Click = Erase (Air).<br>
-        Perimeter locked to Wall (1). Goal (9) allowed on border.
+        <strong>Perimeter:</strong> Solid tiles (Wall, Spike, Water, etc.) allowed. Air/Moving Blocks blocked.
     </div>
 
     <div class="label">Tiles</div>
@@ -170,13 +170,13 @@
         0: '#000000', 
         1: '#888888', 
         2: '#e74c3c', // Move Vert (Red)
-        3: '#e74c3c', // Move Horiz (Red) <- CHANGED FROM BLUE TO RED
-        4: '#9b59b6', 
-        5: '#d35400', 
-        6: '#e67e22', 
-        7: '#f39c12', 
+        3: '#e74c3c', // Move Horiz (Red)
+        4: '#9b59b6', // Spike (Purple)
+        5: '#d35400', // Sticky (Brown)
+        6: '#e67e22', // Shoot V (Orange)
+        7: '#f39c12', // Shoot H (Yellow)
         8: '#2980b9', // Water (Blue)
-        9: '#2ecc71'
+        9: '#2ecc71'  // Goal (Green)
     };
 
     const LABELS = {
@@ -184,6 +184,13 @@
         4: 'Spike Trap', 5: 'Sticky Block', 6: 'Shoot Trap (V)', 7: 'Shoot Trap (H)',
         8: 'Water', 9: 'Goal'
     };
+
+    // Tiles allowed on the perimeter (Solid/Containment)
+    const PERMITTED_BORDER = [
+        TILES.WALL, TILES.SPIKE_TRAP, TILES.STICKY_BLOCK, 
+        TILES.SHOOT_TRAP_VERTICAL, TILES.SHOOT_TRAP_HORIZONTAL, 
+        TILES.WATER, TILES.GOAL
+    ];
 
     let width = 28;
     let height = 16;
@@ -193,6 +200,7 @@
     let grid = [];
     let enemies = [];
     let enemyMode = false;
+    let goalPosition = null; // Tracks the single goal {x, y}
 
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
@@ -247,7 +255,11 @@
             for(let x=0; x<width; x++) {
                 const isBorder = (x===0 || x===width-1 || y===0 || y===height-1);
                 if(isBorder) {
-                    if(grid[y][x] !== TILES.GOAL) grid[y][x] = TILES.WALL;
+                    const t = grid[y][x];
+                    // If not allowed on border (and not Goal which is handled separately), force to Wall
+                    if (!PERMITTED_BORDER.includes(t)) {
+                        grid[y][x] = TILES.WALL;
+                    }
                 }
             }
         }
@@ -259,9 +271,25 @@
 
     function canPlaceTile(x, y, type) {
         if(!isBorder(x, y)) return true;
-        if(type === TILES.GOAL) return true;
-        if(type === TILES.WALL) return true;
-        return false;
+        // Check if type is in the allowed border list
+        return PERMITTED_BORDER.includes(type);
+    }
+
+    function placeGoal(x, y) {
+        // Remove existing goal
+        if (goalPosition) {
+            const oldX = goalPosition.x;
+            const oldY = goalPosition.y;
+            // Reset old spot: if border, make Wall; if interior, make Air
+            if (isBorder(oldX, oldY)) {
+                grid[oldY][oldX] = TILES.WALL;
+            } else {
+                grid[oldY][oldX] = TILES.AIR;
+            }
+        }
+        // Place new goal
+        grid[y][x] = TILES.GOAL;
+        goalPosition = { x, y };
     }
 
     function draw() {
@@ -297,10 +325,8 @@
             ctx.fillStyle = '#fff';
             ctx.beginPath(); ctx.moveTo(cx, py+SIZE*0.3); ctx.lineTo(px+SIZE*0.8, py+SIZE*0.8); ctx.lineTo(px+SIZE*0.2, py+SIZE*0.8); ctx.fill();
         }
-        // MOVING BLOCKS (Both Red now)
         else if(t === TILES.MOVING_BLOCK_HORIZONTAL) {
             ctx.fillRect(px+5, cy-2, SIZE-10, 4);
-            // Arrows
             ctx.beginPath(); ctx.moveTo(px+5, cy-5); ctx.lineTo(px+5, cy+5); ctx.lineTo(px+12, cy); ctx.fill();
             ctx.beginPath(); ctx.moveTo(px+SIZE-5, cy-5); ctx.lineTo(px+SIZE-5, cy+5); ctx.lineTo(px+SIZE-12, cy); ctx.fill();
         }
@@ -309,7 +335,6 @@
             ctx.beginPath(); ctx.moveTo(cx-5, py+5); ctx.lineTo(cx+5, py+5); ctx.lineTo(cx, py+12); ctx.fill();
             ctx.beginPath(); ctx.moveTo(cx-5, py+SIZE-5); ctx.lineTo(cx+5, py+SIZE-5); ctx.lineTo(cx, py+SIZE-12); ctx.fill();
         }
-        // Shoot Traps (Orange/Yellow)
         else if(t === TILES.SHOOT_TRAP_HORIZONTAL) {
             ctx.fillRect(px+5, cy-2, SIZE-10, 4);
             ctx.beginPath(); ctx.moveTo(px+5, cy-5); ctx.lineTo(px+5, cy+5); ctx.lineTo(px+12, cy); ctx.fill();
@@ -398,13 +423,35 @@
                 draw();
             }
         } else {
-            const type = isRight ? TILES.AIR : currentTile;
-            if (canPlaceTile(p.x, p.y, type)) {
-                grid[p.y][p.x] = type;
-                draw();
-            } else if (isRight && isBorder(p.x, p.y)) {
-                ctx.strokeStyle = '#f00'; ctx.lineWidth = 3;
-                ctx.strokeRect(p.x*SIZE, p.y*SIZE, SIZE, SIZE);
+            // TILE MODE
+            if (isRight) {
+                // Erase logic
+                if (!isBorder(p.x, p.y) || PERMITTED_BORDER.includes(TILES.AIR)) { 
+                    // Actually Air is never permitted on border per your rules? 
+                    // You said "Only solid non-passable tiles". Air is passable.
+                    // So Right Click on border should probably do nothing or flash error.
+                    if (!isBorder(p.x, p.y)) {
+                        grid[p.y][p.x] = TILES.AIR;
+                        draw();
+                    } else {
+                         // Flash error for erasing border
+                        ctx.strokeStyle = '#f00'; ctx.lineWidth = 3;
+                        ctx.strokeRect(p.x*SIZE, p.y*SIZE, SIZE, SIZE);
+                    }
+                }
+            } else if (e.buttons === 1) {
+                // Paint logic
+                if (currentTile === TILES.GOAL) {
+                    placeGoal(p.x, p.y);
+                    draw();
+                } else if (canPlaceTile(p.x, p.y, currentTile)) {
+                    grid[p.y][p.x] = currentTile;
+                    draw();
+                } else {
+                    // Flash error
+                    ctx.strokeStyle = '#f00'; ctx.lineWidth = 3;
+                    ctx.strokeRect(p.x*SIZE, p.y*SIZE, SIZE, SIZE);
+                }
             }
         }
     }
@@ -460,7 +507,7 @@
             } else {
                 btnEnemyMode.classList.remove('active');
                 btnEnemyMode.innerHTML = "🛑 TILE EDITING";
-                modeHint.innerHTML = "<strong>Tile Mode:</strong><br>Left Click = Paint, Right Click = Erase (Air).<br>Perimeter locked to Wall (1). Goal (9) allowed on border.";
+                modeHint.innerHTML = "<strong>Tile Mode:</strong><br>Left Click = Paint, Right Click = Erase (Interior Only).<br>Border: Solid tiles only. Max 1 Goal.";
             }
         };
 
@@ -472,6 +519,8 @@
                 for(let x=1; x<width-1; x++)
                     grid[y][x] = TILES.AIR;
             enemies = [];
+            goalPosition = null; // Reset goal tracking
+            enforceBorder(); // Ensure border is clean
             draw();
         };
 
