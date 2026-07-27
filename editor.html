@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Map Editor</title>
+    <style>
+        :root {
+            --bg-color: #1e1e1e;
+            --panel-color: #2d2d2d;
+            --text-color: #e0e0e0;
+            --accent-color: #4a90e2;
+            --border-color: #444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar Styles */
+        #sidebar {
+            width: 250px;
+            background-color: var(--panel-color);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            padding: 15px;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+        }
+
+        h2 { margin-top: 0; font-size: 1.2rem; color: var(--accent-color); }
+        
+        .tool-group { margin-bottom: 20px; }
+        .label { display: block; margin-bottom: 8px; font-weight: bold; font-size: 0.9rem; }
+
+        /* Tile Palette */
+        .palette {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .tile-btn {
+            background: #3a3a3a;
+            border: 2px solid transparent;
+            color: white;
+            padding: 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            text-align: left;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .tile-btn:hover { background: #444; }
+        .tile-btn.active { border-color: var(--accent-color); background: #333; }
+        
+        .color-swatch {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            border: 1px solid #000;
+        }
+
+        /* Controls */
+        .controls { display: flex; flex-direction: column; gap: 10px; }
+        
+        button.action-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        button.action-btn:hover { background-color: #357abd; }
+        button.secondary { background-color: #555; }
+        button.secondary:hover { background-color: #666; }
+
+        input[type="number"] {
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            padding: 5px;
+            border-radius: 3px;
+            width: 60px;
+        }
+
+        /* Main Canvas Area */
+        #main-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            background-color: #121212;
+            overflow: auto;
+            justify-content: center;
+            align-items: center;
+        }
+
+        canvas {
+            background-color: #000;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5);
+            cursor: crosshair;
+        }
+
+        /* Output Modal */
+        #output-modal {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+
+        .modal-content {
+            background: var(--panel-color);
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            height: 80%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        textarea {
+            flex: 1;
+            background: #111;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #444;
+            padding: 10px;
+            resize: none;
+            margin-bottom: 15px;
+        }
+
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .close-btn { background: none; border: none; color: #aaa; font-size: 1.5rem; cursor: pointer; }
+        .close-btn:hover { color: white; }
+
+    </style>
+</head>
+<body>
+
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <h2>Map Editor</h2>
+        
+        <div class="tool-group">
+            <span class="label">Dimensions</span>
+            <div style="display:flex; gap:10px; align-items:center;">
+                <label>W: <input type="number" id="map-width" value="15" min="5" max="50"></label>
+                <label>H: <input type="number" id="map-height" value="10" min="5" max="50"></label>
+                <button class="action-btn secondary" id="resize-btn" style="padding: 5px 10px;">Set</button>
+            </div>
+        </div>
+
+        <div class="tool-group">
+            <span class="label">Tile Palette</span>
+            <div class="palette" id="palette">
+                <!-- Generated by JS -->
+            </div>
+        </div>
+
+        <div class="tool-group">
+            <span class="label">Actions</span>
+            <div class="controls">
+                <button class="action-btn" id="export-btn">Export Code</button>
+                <button class="action-btn secondary" id="clear-btn">Clear Map</button>
+                <button class="action-btn secondary" id="border-btn">Add Border</button>
+            </div>
+        </div>
+        
+        <div style="margin-top: auto; font-size: 0.8rem; color: #888;">
+            <p>Left Click: Paint<br>Right Click: Erase (Air)</p>
+        </div>
+    </div>
+
+    <!-- Main Canvas -->
+    <div id="main-area">
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <!-- Export Modal -->
+    <div id="output-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Exported GameConfig</h3>
+                <button class="close-btn" id="close-modal">&times;</button>
+            </div>
+            <textarea id="output-code" readonly></textarea>
+            <button class="action-btn" id="copy-btn">Copy to Clipboard</button>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration & State ---
+        const TILE_TYPES = {
+            AIR: 0,
+            WALL: 1,
+            MOVING_BLOCK_VERTICAL: 2,
+            MOVING_BLOCK_HORIZONTAL: 3,
+            GOAL: 9
+        };
+
+        const TILE_COLORS = {
+            0: '#000000', // Air (Transparent/Black)
+            1: '#888888', // Wall (Grey)
+            2: '#e74c3c', // Vertical Moving (Red)
+            3: '#3498db', // Horizontal Moving (Blue)
+            9: '#2ecc71'  // Goal (Green)
+        };
+
+        const TILE_LABELS = {
+            0: 'Air',
+            1: 'Wall',
+            2: 'Vert Move',
+            3: 'Horiz Move',
+            9: 'Goal'
+        };
+
+        let mapWidth = 15;
+        let mapHeight = 10;
+        let tileSize = 40; // Visual size in editor
+        let currentTile = TILE_TYPES.WALL;
+        let isDrawing = false;
+        let mapData = [];
+
+        // --- DOM Elements ---
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+        const paletteContainer = document.getElementById('palette');
+        const outputModal = document.getElementById('output-modal');
+        const outputCode = document.getElementById('output-code');
+        
+        // --- Initialization ---
+        function init() {
+            createPalette();
+            resizeMap(mapWidth, mapHeight);
+            setupEvents();
+            draw();
+        }
+
+        function createPalette() {
+            paletteContainer.innerHTML = '';
+            Object.keys(TILE_TYPES).forEach(key => {
+                const val = TILE_TYPES[key];
+                const btn = document.createElement('div');
+                btn.className = `tile-btn ${val === TILE_TYPES.WALL ? 'active' : ''}`;
+                btn.dataset.value = val;
+                btn.innerHTML = `
+                    <div class="color-swatch" style="background-color: ${TILE_COLORS[val]}"></div>
+                    <span>${TILE_LABELS[val]}</span>
+                `;
+                btn.onclick = () => selectTile(val, btn);
+                paletteContainer.appendChild(btn);
+            });
+        }
+
+        function selectTile(value, btnElement) {
+            currentTile = value;
+            document.querySelectorAll('.tile-btn').forEach(b => b.classList.remove('active'));
+            btnElement.classList.add('active');
+        }
+
+        function resizeMap(w, h) {
+            mapWidth = parseInt(w) || 15;
+            mapHeight = parseInt(h) || 10;
+            
+            // Initialize or resize data array
+            const newData = [];
+            for (let y = 0; y < mapHeight; y++) {
+                const row = [];
+                for (let x = 0; x < mapWidth; x++) {
+                    // Preserve existing data if resizing larger, otherwise default to AIR
+                    if (y < mapData.length && x < mapData[y].length) {
+                        row.push(mapData[y][x]);
+                    } else {
+                        row.push(TILE_TYPES.AIR);
+                    }
+                }
+                newData.push(row);
+            }
+            mapData = newData;
+            
+            // Update Canvas Size
+            canvas.width = mapWidth * tileSize;
+            canvas.height = mapHeight * tileSize;
+            draw();
+        }
+
+        // --- Drawing Logic ---
+        function draw() {
+            // Clear background
+            ctx.fillStyle = '#111';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Grid Lines (subtle)
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            for (let x = 0; x <= mapWidth; x++) {
+                ctx.beginPath();
+                ctx.moveTo(x * tileSize, 0);
+                ctx.lineTo(x * tileSize, canvas.height);
+                ctx.stroke();
+            }
+            for (let y = 0; y <= mapHeight; y++) {
+                ctx.beginPath();
+                ctx.moveTo(0, y * tileSize);
+                ctx.lineTo(canvas.width, y * tileSize);
+                ctx.stroke();
+            }
+
+            // Draw Tiles
+            for (let y = 0; y < mapHeight; y++) {
+                for (let x = 0; x < mapWidth; x++) {
+                    const tile = mapData[y][x];
+                    if (tile !== TILE_TYPES.AIR) {
+                        drawTile(x, y, tile);
+                    }
+                }
+            }
+        }
+
+        function drawTile(x, y, type) {
+            const px = x * tileSize;
+            const py = y * tileSize;
+            const padding = 1;
+
+            ctx.fillStyle = TILE_COLORS[type];
+            ctx.fillRect(px + padding, py + padding, tileSize - padding*2, tileSize - padding*2);
+
+            // Add visual indicators for special tiles
+            if (type === TILE_TYPES.GOAL) {
+                // Draw a triangle for goal
+                ctx.fillStyle = '#fff';
+                ctx.beginPath();
+                ctx.moveTo(px + tileSize/2, py + tileSize/4);
+                ctx.lineTo(px + tileSize*0.75, py + tileSize*0.75);
+                ctx.lineTo(px + tileSize*0.25, py + tileSize*0.75);
+                ctx.fill();
+            } else if (type === TILE_TYPES.MOVING_BLOCK_HORIZONTAL) {
+                // Draw arrows
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(px + 5, py + tileSize/2 - 2, tileSize - 10, 4);
+                ctx.beginPath();
+                ctx.moveTo(px + 5, py + tileSize/2 - 5);
+                ctx.lineTo(px + 5, py + tileSize/2 + 5);
+                ctx.lineTo(px + 12, py + tileSize/2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(px + tileSize - 5, py + tileSize/2 - 5);
+                ctx.lineTo(px + tileSize - 5, py + tileSize/2 + 5);
+                ctx.lineTo(px + tileSize - 12, py + tileSize/2);
+                ctx.fill();
+            } else if (type === TILE_TYPES.MOVING_BLOCK_VERTICAL) {
+                // Draw arrows
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(px + tileSize/2 - 2, py + 5, 4, tileSize - 10);
+                ctx.beginPath();
+                ctx.moveTo(px + tileSize/2 - 5, py + 5);
+                ctx.lineTo(px + tileSize/2 + 5, py + 5);
+                ctx.lineTo(px + tileSize/2, py + 12);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.moveTo(px + tileSize/2 - 5, py + tileSize - 5);
+                ctx.lineTo(px + tileSize/2 + 5, py + tileSize - 5);
+                ctx.lineTo(px + tileSize/2, py + tileSize - 12);
+                ctx.fill();
+            }
+            
+            // Draw border
+            ctx.strokeStyle = 'rgba(0,0,0,0.5)';
+            ctx.lineWidth = 2;
+            ctx.strokeRect(px + padding, py + padding, tileSize - padding*2, tileSize - padding*2);
+        }
+
+        // --- Interaction ---
+        function getMousePos(evt) {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            return {
+                x: Math.floor(((evt.clientX - rect.left) * scaleX) / tileSize),
+                y: Math.floor(((evt.clientY - rect.top) * scaleY) / tileSize)
+            };
+        }
+
+        function paint(x, y) {
+            if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
+                mapData[y][x] = currentTile;
+                draw();
+            }
+        }
+
+        function erase(x, y) {
+            if (x >= 0 && x < mapWidth && y >= 0 && y < mapHeight) {
+                mapData[y][x] = TILE_TYPES.AIR;
+                draw();
+            }
+        }
+
+        function setupEvents() {
+            // Canvas Drawing
+            canvas.addEventListener('mousedown', (e) => {
+                isDrawing = true;
+                const pos = getMousePos(e);
+                if (e.button === 2) { // Right click
+                    erase(pos.x, pos.y);
+                } else {
+                    paint(pos.x, pos.y);
+                }
+            });
+
+            canvas.addEventListener('mousemove', (e) => {
+                if (!isDrawing) return;
+                const pos = getMousePos(e);
+                if (e.buttons === 2) {
+                    erase(pos.x, pos.y);
+                } else {
+                    paint(pos.x, pos.y);
+                }
+            });
+
+            window.addEventListener('mouseup', () => isDrawing = false);
+            canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+            // Controls
+            document.getElementById('resize-btn').addEventListener('click', () => {
+                const w = document.getElementById('map-width').value;
+                const h = document.getElementById('map-height').value;
+                resizeMap(w, h);
+            });
+
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                if(confirm('Clear entire map?')) {
+                    resizeMap(mapWidth, mapHeight); // Resets to air
+                }
+            });
+
+            document.getElementById('border-btn').addEventListener('click', () => {
+                for (let y = 0; y < mapHeight; y++) {
+                    for (let x = 0; x < mapWidth; x++) {
+                        if (y === 0 || y === mapHeight - 1 || x === 0 || x === mapWidth - 1) {
+                            mapData[y][x] = TILE_TYPES.WALL;
+                        }
+                    }
+                }
+                draw();
+            });
+
+            // Export
+            document.getElementById('export-btn').addEventListener('click', generateExport);
+            document.getElementById('close-modal').addEventListener('click', () => {
+                outputModal.style.display = 'none';
+            });
+            document.getElementById('copy-btn').addEventListener('click', () => {
+                outputCode.select();
+                document.execCommand('copy');
+                alert('Copied to clipboard!');
+            });
+        }
+
+        // --- Export Logic ---
+        function generateExport() {
+            let mapString = "";
+            for (let y = 0; y < mapHeight; y++) {
+                const row = mapData[y].join(',');
+                mapString += `    [${row}],\n`;
+            }
+            // Remove trailing comma/newline for clean look
+            mapString = mapString.trimEnd();
+
+            const code = `export const GameConfig = {
+    TILE_SIZE: 50,
+    ISO_DEPTH: 15,
+    FRICTION: 0.85,
+    GRAVITY: 0.5,
+    JUMP_FORCE: -12,
+    MOVE_SPEED: 1,
+    MOVING_BLOCK_SPEED: 0.25,
+    CAMERA_LERP: 0.1,
+    TILES: {
+        AIR: 0,
+        WALL: 1,
+        GOAL: 9,
+        MOVING_BLOCK_VERTICAL: 2,
+        MOVING_BLOCK_HORIZONTAL: 3
+    },
+    MAP_DATA: [
+${mapString}
+]
+};`;
+
+            outputCode.value = code;
+            outputModal.style.display = 'flex';
+        }
+
+        // Start
+        init();
+
+    </script>
+</body>
+</html>   
