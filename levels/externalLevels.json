@@ -1,29 +1,8 @@
-export const GameConfig = {
-    TILE_SIZE: 50,
-    ISO_DEPTH: 15,
-    FRICTION: 0.85,
-    GRAVITY: 0.2,
-    VERTICAL_STEP: 0.12,
-    JUMP_FORCE: -4,
-    MOVE_SPEED: 0.2,
-    MOVING_BLOCK_SPEED: 0.05,
-    CAMERA_LERP: 0.1,
-    PLAYER_STAND_HEIGHT: 1.15,
-    PLAYER_CROUCH_HEIGHT: 0.7,
-    TILES: {
-        AIR: 0,
-        WALL: 1,
-        MOVING_BLOCK_VERTICAL: 2,
-        MOVING_BLOCK_HORIZONTAL: 3,
-        SPIKE_TRAP: 4,
-        STICKY_BLOCK: 5,
-        SHOOT_TRAP_VERTICAL: 6,
-        SHOOT_TRAP_HORIZONTAL: 7,
-        WATER: 8,
-        GOAL: 9,
-        DOORWAY: 10
-    },
-    MAP_DATA: [
+[
+  {
+    "id": 1,
+    "name": "The Prison Breach",
+    "MAP_DATA":  [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 6, 1, 1, 1, 1, 1, 1, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -52,10 +31,11 @@ export const GameConfig = {
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
     [1, 9, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 1],
-    [1, 1, 1, 1, 8, 8, 8, 1, 1, 1, 1, 1, 1, 8, 8, 1, 1, 1, 1, 1, 1, 8, 8, 8, 1, 1, 1, 1],
+    [1, 1, 1, 1, 8, 8, 8, 1, 1, 1, 1, 1, 1, 8, 8, 1, 1, 1, 1, 1, 1, 8, 8, 8, 1, 1, 1, 1]
 ],
-ACTOR_DATA: [
-    { type: 'enemy', x: 6, y: 6, facing: 1 },
-    { type: 'enemy', x: 7, y: 6, facing: -1 }
+    "ACTOR_DATA": [
+      { "type": "enemy", "x": 6, "y": 6, "facing": 1 },
+      { "type": "enemy", "x": 7, "y": 6, "facing": -1 }
+    ]
+  }
 ]
-};

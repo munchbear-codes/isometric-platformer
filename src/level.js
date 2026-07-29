@@ -1,10 +1,36 @@
 import { GameConfig } from './config.js';
+import { LobbyConfig } from './lobbyConfig.js'; // Injected for default pregame hub map state
 
 export class LevelManager {
-    constructor(matrix) {
-        this.matrix = matrix.map(row => [...row]);
+    constructor(matrix = null) {
+        // ⚡ MULTIPLAYER INSTANCING FIX: Fallback to the pristine unpacked LobbyConfig 
+        // if no explicit level array payload is supplied at instantiation time
+        const targetMatrix = matrix || LobbyConfig.getMapData();
+        
+        this.matrix = targetMatrix.map(row => [...row]);
         this.height = this.matrix.length;
         this.width = this.matrix[0].length;
+        this.movingBlocks = [];
+        this.parseMovingBlocks();
+    }
+
+    /**
+     * Runtime Level Instancing Engine: Blasts out old matrix dimensions, 
+     * flushes stale moving block caches, and dynamically remaps system boundaries.
+     * @param {Array<Array<number>>} newMatrix 
+     */
+    loadNewLevelLayout(newMatrix) {
+        if (!newMatrix || !newMatrix.length || !newMatrix[0].length) {
+            console.error("Invalid level matrix payload rejected");
+            return;
+        }
+
+        // Deep copy incoming layout dimensions cleanly
+        this.matrix = newMatrix.map(row => [...row]);
+        this.height = this.matrix.length;
+        this.width = this.matrix[0].length;
+        
+        // Wipe and re-parse dynamic platforms for the target level
         this.movingBlocks = [];
         this.parseMovingBlocks();
     }
@@ -49,7 +75,37 @@ export class LevelManager {
     isSolidAt(c, r) {
         const col = Math.floor(c);
         const row = Math.floor(r);
-        return this.getTile(col, row) !== GameConfig.TILES.AIR || !!this.getMovingBlockAt(col, row);
+        const tile = this.getTile(col, row);
+
+        // ⚡ THE DOORWAY PASS PASSTHROUGH FIX: 
+        // Force the physics loop to treat tile ID 10 as completely hollow air space
+        // This clears the block so players can stand in it to activate triggers!
+        if (tile === 10 || tile === GameConfig.TILES.DOORWAY) {
+            return false;
+        }
+
+        return tile === GameConfig.TILES.WALL
+            || tile === GameConfig.TILES.GOAL
+            || tile === GameConfig.TILES.STICKY_BLOCK
+            || !!this.getMovingBlockAt(col, row);
+    }
+
+    isHazardAt(c, r) {
+        const col = Math.floor(c);
+        const row = Math.floor(r);
+        const tile = this.getTile(col, row);
+
+        if (tile === GameConfig.TILES.WATER || tile === GameConfig.TILES.SPIKE_TRAP) {
+            return true;
+        }
+
+        return false;
+    }
+
+    isStickyAt(c, r) {
+        const col = Math.floor(c);
+        const row = Math.floor(r);
+        return this.getTile(col, row) === GameConfig.TILES.STICKY_BLOCK;
     }
 
     updateMovingBlocks() {
